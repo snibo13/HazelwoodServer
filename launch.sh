@@ -1,2 +1,4 @@
 # npx localtunnel --port 5000
-flask run & disown
+# Ensure database is up
+sudo systemctl start mongod
+flask run --debug
