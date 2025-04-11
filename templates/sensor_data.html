@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Data</title>
+    <script>
+        window.onload(() => {
+            const date = new Date();
+            document.getElementById("time").innerHTML = date.toUTCString();
+        });
+    </script>
+</head>
+
+
+<body>
+    <div id="time-wrapper">
+        <p>
+            Last Updated At:
+        </p>
+        <h1 id="time"></h1>
+
+    </div>
+    <div id="measurement-container">
+
+
+        <!-- <div class="measurement-block">
+            <h1 class="measurement-value">
+                0.00
+            </h1>
+            <h3 class="measurement-type">
+                Measurement type
+            </h3>
+        </div> -->
+        {% for item in data -%}
+        {{ item }}
+        {%- endfor %}
+    </div>
+
+</body>
+
+</html>
