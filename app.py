@@ -27,14 +27,12 @@ if USING_DB:
 
 
 valid_measurement_types = [
-  "pm10_standard",
-  "pm25_standard",
-  "pm100_standard",
-  "aqi_pm25",
-  "aqi_pm100",
-  "temperature",
-  "humidity",
-  "pressure"
+    "pm25_standard",
+    "pm100_standard",
+    "aqi_pm25",
+    "aqi_pm100",
+    "temperature",
+    "humidity",
 ]
 
 
@@ -77,46 +75,48 @@ def echo(echo_msg):
 @app.post("/sensor_data")
 def process_sensor_data():
     json = request.get_json()
-    if "type" not in json:
+    if "measurement_type" not in json:
+        print("Missing type")
         return "Missing value", 400
     if "value" not in json:
-        return "Missing measurement", 400
+        print("Missing value")
+        return "Missing value", 400
 
-    measurement_type = json["type"]
+    measurement_type = json["measurement_type"]
     if measurement_type not in valid_measurement_types:
         # Create response with 400 status code
+        print(f"Invalid measurement type: {measurement_type}")
         return "Invalid measurement type", 400
 
     value = json["value"]
     process_data_response = process_data(measurement_type, value)
     print(f"process_data_response: {process_data_response}")
     # Create response with 200 status code
-    return "OK", 200
-
+    return "OK"
 
 
 @app.get("/sensor_data")
 def show_sensor_data():
     if not USING_DB:
         return "No data available"
-    data = {}
+
+    data = []
+
     for measurement_type in valid_measurement_types:
-        last_ten = db["Sensor Data"].find({"measurement_type": measurement_type}).sort(
-                "timestamp", -1
-            ).limit(10)
-        # Compute average
-        print(f"Last 10 {measurement_type} values:")
-        total = 0
-        count = 0
-        for doc in last_ten:
-            print(doc["sensor_value"])
-            total += doc["sensor_value"]
-            count += 1
-        if count > 0:
-            average = total / count
-            print(f"Average {measurement_type}: {average}")
-            data[measurement_type] = average
+        last_ten = list(
+            db["Sensor Data"]
+            .find({"measurement_type": measurement_type})
+            .sort("timestamp", -1)
+            .limit(10)
+        )
+
+        values = [doc["sensor_value"] for doc in last_ten if "sensor_value" in doc]
+        if values:
+            average = sum(values) / len(values)
+            data.append({"type": measurement_type, "value": round(average, 2)})
         else:
             print(f"No {measurement_type} data available")
-            data[measurement_type] = None
+            data.append({"type": measurement_type, "value": None})
+
+    print("Averages:", data)
     return render_template("sensor_data.html", data=data)

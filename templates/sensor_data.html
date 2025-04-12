@@ -4,40 +4,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <title>Sensor Data</title>
     <script>
-        window.onload(() => {
-            const date = new Date();
-            document.getElementById("time").innerHTML = date.toUTCString();
-        });
+        function updateTime() {
+            const now = new Date();
+            const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            const formattedTime = now.toLocaleString('en-US', options);
+            document.getElementById('time').innerText = formattedTime;
+        }
+
+        window.onload = updateTime;
+
     </script>
 </head>
 
-
-<body>
+<body id="container">
     <div id="time-wrapper">
-        <p>
-            Last Updated At:
-        </p>
+        <p>Last Updated At:</p>
         <h1 id="time"></h1>
-
     </div>
+
     <div id="measurement-container">
-
-
-        <!-- <div class="measurement-block">
-            <h1 class="measurement-value">
-                0.00
-            </h1>
-            <h3 class="measurement-type">
-                Measurement type
-            </h3>
-        </div> -->
-        {% for item in data -%}
-        {{ item }}
-        {%- endfor %}
+        {% for item in data %}
+        <div class="measurement-block">
+            <h1 class="measurement-value">{{ '-' if item.value is none else item.value }}</h1>
+            <h3 class="measurement-type">{{ item.type.replace('_', ' ').title() }}</h3>
+        </div>
+        {% endfor %}
     </div>
-
 </body>
 
 </html>
