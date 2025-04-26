@@ -36,11 +36,12 @@ valid_measurement_types = [
 ]
 
 
-def process_data(sensor_type, value):
+def process_data(device_name, sensor_type, value):
     datapoint = {
         "timestamp": datetime.datetime.now(),
         "measurement_type": sensor_type,
         "sensor_value": value,
+        "device_name":device_name
     }
     print(f"Received {sensor_type} data: {value}")
     print(f"Datapoint: {datapoint}")
@@ -72,8 +73,8 @@ def echo(echo_msg):
     return echo_msg
 
 
-@app.post("/sensor_data")
-def process_sensor_data():
+@app.post("/sensor_data/<device_name>")
+def process_sensor_data(device_name):
     json = request.get_json()
     if "measurement_type" not in json:
         print("Missing type")
@@ -89,14 +90,14 @@ def process_sensor_data():
         return "Invalid measurement type", 400
 
     value = json["value"]
-    process_data_response = process_data(measurement_type, value)
+    process_data_response = process_data(device_name, measurement_type, value)
     print(f"process_data_response: {process_data_response}")
     # Create response with 200 status code
     return "OK"
 
 
-@app.get("/sensor_data")
-def show_sensor_data():
+@app.get("/sensor_data/<device_name>")
+def show_sensor_data(device_name):
     if not USING_DB:
         return "No data available"
 
@@ -105,7 +106,7 @@ def show_sensor_data():
     for measurement_type in valid_measurement_types:
         last_ten = list(
             db["Sensor Data"]
-            .find({"measurement_type": measurement_type})
+            .find({"measurement_type": measurement_type, "device_name":device_name})
             .sort("timestamp", -1)
             .limit(10)
         )
@@ -120,3 +121,5 @@ def show_sensor_data():
 
     print("Averages:", data)
     return render_template("sensor_data.html", data=data)
+
+
