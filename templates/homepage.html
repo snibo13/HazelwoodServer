@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Interactive Quality Map</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        function updateTime() {
+            const now = new Date();
+            const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            const formattedTime = now.toLocaleString('en-US', options);
+            document.getElementById('time').innerText = formattedTime;
+        }
+
+        window.onload = updateTime;</script>
+
+</head>
+
+<body id="container">
+    <div id="map"></div>
+    <div id="time-wrapper">
+        <p>Last Updated At:</p>
+        <h1 id="time"></h1>
+    </div>
+
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <script>
+        const points = {{ points | tojson }};
+
+        function qualityToColor(q) {
+            const r = Math.round(255 * (1 - q));
+            const g = Math.round(255 * q);
+            return `rgb(${r}, ${g}, 0)`;
+        }
+
+        const map = L.map('map'); // Set initial view to the center of the world
+        const bounds = L.latLngBounds([]);
+
+        points.forEach((pt) => {
+            const marker = L.circleMarker([pt.lat, pt.lon], {
+                radius: 8,
+                fillColor: qualityToColor(pt.quality),
+                color: "#000",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 1,
+            })
+                .bindPopup(`<strong>${pt.name}</strong><br>Quality: ${pt.quality}`)
+                .addTo(map);
+
+            bounds.extend([pt.lat, pt.lon]); // ⬅️ Add point to bounds
+        });
+
+        map.fitBounds(bounds); // ⬅️ Adjust view to fit all points
+
+
+        // Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://carto.com/">CartoDB</a>',
+        }).addTo(map);
+    </script>
+</body>
+
+</html>

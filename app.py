@@ -19,8 +19,11 @@ if USING_DB:
         if "Sensor Data" not in db.list_collection_names():
             db.create_collection("Sensor Data")
             print("Created collection 'Sensor Data'")
-        else:
-            print("Collection 'Sensor Data' already exists")
+
+        if "Devices" not in db.list_collection_names():
+            db.create_collection("Devices")
+            print("Created collection 'Devices'")
+
     else:
         print("Failed to connect to database")
         exit(1)
@@ -41,7 +44,7 @@ def process_data(device_name, sensor_type, value):
         "timestamp": datetime.datetime.now(),
         "measurement_type": sensor_type,
         "sensor_value": value,
-        "device_name":device_name
+        "device_name": device_name,
     }
     print(f"Received {sensor_type} data: {value}")
     print(f"Datapoint: {datapoint}")
@@ -51,9 +54,49 @@ def process_data(device_name, sensor_type, value):
     return db["Sensor Data"].insert_one(datapoint)
 
 
-@app.get("/")
+@app.get("/sensor_data")
 def index_get():
-    return "Hello World"
+    if not USING_DB:
+        return "No data available"
+
+    # Get all devices in the database
+    devices = db["Sensor Data"].distinct("device_name")
+    print(f"Devices: {devices}")
+    points = []
+    for device in devices:
+        print(f"Device: {device}")
+
+        last_ten = list(
+            db["Sensor Data"]
+            .find({"measurement_type": "aqi_pm25", "device_name": device})
+            .sort("timestamp", -1)
+            .limit(10)
+        )
+
+        quality = sum(last_ten) / len(last_ten) if last_ten else 0
+        print(f"Last ten AQI values: {last_ten}")
+        print(f"Average AQI: {quality}")
+
+        if quality > 0:
+            quality = math.ceil(quality / 10) * 10
+        else:
+            quality = 0
+        print(f"Rounded AQI: {quality}")
+
+        dev = db["Devices"].find_one({"device_name": device})
+        if dev is None:
+            print(f"Device {device} not found in database")
+            continue
+
+        point = {
+            "device_name": device,
+            "lon": dev["long"],
+            "lat": dev["lat"],
+            "device_quality": quality,
+        }
+        points.append(point)
+
+    return render_template("homepage.html", points=points)
 
 
 @app.post("/")
@@ -75,7 +118,18 @@ def echo(echo_msg):
 
 @app.post("/sensor_data/<device_name>")
 def process_sensor_data(device_name):
+
     json = request.get_json()
+
+    db["Devices"].find_one({"device_name": device_name})
+    if db["Devices"].count_documents({"device_name": device_name}) == 0:
+        print(f"Device {device_name} not found in database")
+        print("Adding device to database")
+        db["Devices"].insert_one(
+            {"device_name": device_name, "lat": json["lat"], "long": json["long"]}
+        )
+        print(f"Device {device_name} added to database")
+
     if "measurement_type" not in json:
         print("Missing type")
         return "Missing value", 400
@@ -106,7 +160,7 @@ def show_sensor_data(device_name):
     for measurement_type in valid_measurement_types:
         last_ten = list(
             db["Sensor Data"]
-            .find({"measurement_type": measurement_type, "device_name":device_name})
+            .find({"measurement_type": measurement_type, "device_name": device_name})
             .sort("timestamp", -1)
             .limit(10)
         )
@@ -121,5 +175,3 @@ def show_sensor_data(device_name):
 
     print("Averages:", data)
     return render_template("sensor_data.html", data=data)
-
-

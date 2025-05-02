@@ -61,3 +61,11 @@ body {
   justify-content: center;
   font-size: xx-large;
 }
+
+#map {
+  width: 90vw;
+  height: 40vh;
+  border-radius: 20px;
+  margin: 2vh 0;
+  border: 5px solid black;
+}
