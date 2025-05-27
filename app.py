@@ -6,6 +6,11 @@ import math
 USING_DB = True
 
 app = Flask(__name__)
+
+@app.before_request
+def log_request_info():
+    print(f"[REQUEST] {request.method} {request.path} from {request.remote_addr}")
+
 print("Starting Flask app...\n\n")
 if USING_DB:
     print("Connecting to database...")
@@ -98,6 +103,9 @@ def index_get():
 
     return render_template("homepage.html", points=points)
 
+@app.get("/")
+def index_get_root():
+    return index_get()
 
 @app.post("/")
 def index_post():
@@ -118,7 +126,7 @@ def echo(echo_msg):
 
 @app.post("/sensor_data/<device_name>")
 def process_sensor_data(device_name):
-
+    # Print the raw request data
     json = request.get_json()
 
     db["Devices"].find_one({"device_name": device_name})
@@ -144,6 +152,7 @@ def process_sensor_data(device_name):
         return "Invalid measurement type", 400
 
     value = json["value"]
+    print(f"Received {measurement_type} data: {value}")
     process_data_response = process_data(device_name, measurement_type, value)
     print(f"process_data_response: {process_data_response}")
     # Create response with 200 status code
